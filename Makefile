@@ -12,5 +12,5 @@ decideMP: main.o aux.o
 .PHONY: clean
 
 clean:
-	rm -f *.o decide
+	rm -f *.o decideMP
 
