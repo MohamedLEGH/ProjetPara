@@ -9,7 +9,7 @@ void evaluate(tree_t * T, result_t *result)
 {
         node_searched++;
   
-        move_t moves[MAX_MOVES];
+        move_t moves[MAX_MOVES]; // Déclaration du tableau moves
         int n_moves;
 
         result->score = -MAX_SCORE - 1;
@@ -42,6 +42,10 @@ void evaluate(tree_t * T, result_t *result)
 
         /* évalue récursivement les positions accessibles à partir d'ici */
         /*C'est ici qu'on peut faire du parallélisme je pense*/
+        /*Test avec OpenMP*/
+        /*Voir si les variables sont privates ou partagés*/
+        /*Voir comment on fait les comparaisons de score (besoin d'un verrou??)*/
+        #pragma omp parallel for schedule(runtime) 
         for (int i = 0; i < n_moves; i++) {
 		tree_t child;
                 result_t child_result;
@@ -51,15 +55,19 @@ void evaluate(tree_t * T, result_t *result)
                 evaluate(&child, &child_result);
                          
                 int child_score = -child_result.score;
-
+			// Mettre un verrou ici sur result (et sur T plus tard pour alpha/beta)
+			   
 		if (child_score > result->score) {
+			omp_set_lock(&result);
 			result->score = child_score;
 			result->best_move = moves[i];
                         result->pv_length = child_result.pv_length + 1;
                         for(int j = 0; j < child_result.pv_length; j++)
                           result->PV[j+1] = child_result.PV[j];
                           result->PV[0] = moves[i];
+            omp_unset_lock(&result);
                 }
+
 
                 if (ALPHA_BETA_PRUNING && child_score >= T->beta)
                   break;    

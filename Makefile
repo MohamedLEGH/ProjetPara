@@ -1,12 +1,12 @@
-target: decide
+target: decideMP
 
-CFLAGS=-g -O3 -std=c99
+CFLAGS=-fopenmp -O3 -std=c99
 
-main.o: main.c projet.h
+main.o: mainMP.c projet.h
 aux.o: aux.c projet.h
 
 
-decide: main.o aux.o
+decideMP: main.o aux.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 .PHONY: clean
