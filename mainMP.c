@@ -1,7 +1,15 @@
 #include "projet.h"
+#include <time.h>
+#include <sys/time.h>
 #include <omp.h>
 
 /* 2017-02-23 : version 1.0 */
+
+double my_gettimeofday(){
+	struct timeval tmp_time;
+	gettimeofday(&tmp_time,NULL);
+	return tmp_time.tv_sec + (tmp_time.tv_usec * 1.0e-6L);
+}
 
 unsigned long long int node_searched = 0;
 
@@ -45,6 +53,8 @@ void evaluate(tree_t * T, result_t *result)
         /*Test avec OpenMP*/
         /*Voir si les variables sont privates ou partagés*/
         /*Voir comment on fait les comparaisons de score (besoin d'un verrou??)*/
+        
+
         #pragma omp parallel for schedule(runtime) 
         for (int i = 0; i < n_moves; i++) {
 		tree_t child;
@@ -56,23 +66,25 @@ void evaluate(tree_t * T, result_t *result)
                          
                 int child_score = -child_result.score;
 			// Mettre un verrou ici sur result (et sur T plus tard pour alpha/beta)
-			   
+		#pragma omp critical
+		{			   
 		if (child_score > result->score) {
-			omp_set_lock(&result);
+
 			result->score = child_score;
 			result->best_move = moves[i];
                         result->pv_length = child_result.pv_length + 1;
                         for(int j = 0; j < child_result.pv_length; j++)
                           result->PV[j+1] = child_result.PV[j];
                           result->PV[0] = moves[i];
-            omp_unset_lock(&result);
+
                 }
 
 
-                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-                  break;    
+             //   if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+             //     break;    
 
                 T->alpha = MAX(T->alpha, child_score);
+        }
         }
 
         if (TRANSPOSITION_TABLE)
@@ -101,6 +113,8 @@ void decide(tree_t * T, result_t *result)
 
 int main(int argc, char **argv)
 {  
+
+	double debut ,fin;
 	tree_t root;
         result_t result;
 
@@ -119,9 +133,9 @@ int main(int argc, char **argv)
         
         parse_FEN(argv[1], &root);
         print_position(&root);
-        
+   debut = my_gettimeofday();     
 	decide(&root, &result);
-
+	fin = my_gettimeofday();
 	printf("\nDécision de la position: ");
         switch(result.score * (2*root.side - 1)) {
         case MAX_SCORE: printf("blanc gagne\n"); break;
@@ -131,7 +145,8 @@ int main(int argc, char **argv)
         }
 
         printf("Node searched: %llu\n", node_searched);
-        
+        fprintf(stderr,"Temps total : %g sec\n", fin-debut);
+        fprintf(stdout, "%g\n", fin-debut);
         if (TRANSPOSITION_TABLE)
           free_tt();
 	return 0;
