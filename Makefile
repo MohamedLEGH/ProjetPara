@@ -1,4 +1,4 @@
-target: decimeMPI decideMP decide
+target: decideMPI decideMP decide
 CC = gcc
 MCC = mpicc
 CFLAGS=-fopenmp -O3 -std=c99
@@ -6,7 +6,7 @@ CFLAGS=-fopenmp -O3 -std=c99
 mainMP.o:mainMP.c projet.h
 	$(CC) $(CFLAGS) -c mainMP.c 
 mainMPI.o:mainMPI.c projet.h
-	$(MCC) -c mainMPI.c
+	$(MCC) -O3 -std=c99 -c mainMPI.c
 main.o:mainMP.c projet.h
 	$(CC) -O3 -std=c99 -c main.c
 aux.o: aux.c projet.h
@@ -26,5 +26,5 @@ decide: main.o aux.o
 .PHONY: clean
 
 clean:
-	rm -f *.o decide MPI decideMP decide
+	rm -f *.o decideMPI decideMP decide
 

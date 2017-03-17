@@ -75,7 +75,7 @@ void evaluate(tree_t * T, result_t *result)
           tt_store(T, result);
 }
 
-void traitement_eval(tree_t T,move_t moves,result_t result,int rank)
+void traitement_eval(tree_t * T,move_t * moves,result_t * result,int rank)
 {
 	tree_t child;
     result_t child_result;
@@ -88,14 +88,14 @@ void traitement_eval(tree_t T,move_t moves,result_t result,int rank)
 	
 	if (child_score > result->score) {
 		result->score = child_score;
-		result->best_move = moves[i];
+		result->best_move = moves[rank];
     	result->pv_length = child_result.pv_length + 1;
      	for(int j = 0; j < child_result.pv_length; j++)  result->PV[j+1] = child_result.PV[j];
-        result->PV[0] = moves[i];
+        result->PV[0] = moves[rank];
     }
 
-    if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-      break;    
+    //if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+    //  break;    
 
     T->alpha = MAX(T->alpha, child_score);
 }
@@ -167,7 +167,7 @@ void evaluatePara(tree_t * T, result_t *result)
 		
 		}
 		// A tester
-		MPI_Allreduce(result->score,result->score,1,MPI_INT,MPI_MIN,MPI_COMM_WORLD)
+		MPI_Allreduce(&(result->score),&(result->score),1,MPI_INT,MPI_MIN,MPI_COMM_WORLD);
 
 		
 		if (TRANSPOSITION_TABLE)
