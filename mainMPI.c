@@ -100,16 +100,17 @@ void traitement_eval(tree_t * T,move_t * moves,result_t * result,int rank)
     T->alpha = MAX(T->alpha, child_score);
 }
 
-void evaluatePara(tree_t * T, result_t *result)
+void evaluatePara(tree_t * T, result_t *result, MPI_Status status,int rank, int p)
 {
-			int my_rank,p;
+		//int rank,p;
 		int maitre = 0;
 		
-		MPI_Status status;
+
+		/*MPI_Status status;
 
 		MPI_Comm_size(MPI_COMM_WORLD, &p);
-		MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
-		
+		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+		*/
         node_searched++;
   
         move_t moves[MAX_MOVES];
@@ -147,9 +148,9 @@ void evaluatePara(tree_t * T, result_t *result)
 		
 		if(n_moves<=p)
 		{
-			if(my_rank<n_moves)
+			if(rank<n_moves)
 			{
-				traitement_eval(T,moves,result,my_rank);	
+				traitement_eval(T,moves,result,rank);	
 			}
 		}
 		else
@@ -158,11 +159,11 @@ void evaluatePara(tree_t * T, result_t *result)
 			int nmov_restant = n_moves%p;
 			for(int i=0; i<mult;i++)
 			{
-				traitement_eval(T,moves,result,my_rank+p*i);
+				traitement_eval(T,moves,result,rank+p*i);
 			}
-			if(my_rank<nmov_restant)
+			if(rank<nmov_restant)
 			{
-				traitement_eval(T,moves,result,my_rank+p*mult);
+				traitement_eval(T,moves,result,rank+p*mult);
 			}
 		
 		}
@@ -175,21 +176,22 @@ void evaluatePara(tree_t * T, result_t *result)
 
 
 }
-void decide(tree_t * T, result_t *result)
-{
+void decide(tree_t * T, result_t *result,MPI_Status status,int rank,int p)
+{		
+		int maitre = 0;
 	for (int depth = 1;; depth++) {
 		T->depth = depth;
 		T->height = 0;
 		T->alpha_start = T->alpha = -MAX_SCORE - 1;
 		T->beta = MAX_SCORE + 1;
-
+		if(rank==maitre)
                 printf("=====================================\n");
 
-		evaluatePara(T, result);
-
+		evaluatePara(T, result,status,rank,p);
+		if(rank==maitre){
                 printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
                 print_pv(T, result);
-                
+                }
                 if (DEFINITIVE(result->score))
                   break;
 	}
@@ -197,13 +199,18 @@ void decide(tree_t * T, result_t *result)
 
 int main(int argc, char **argv)
 {  
+		MPI_Init(&argc, &argv);
+		int rank,p;
+		int maitre =0;
+		MPI_Status status;
 
-	MPI_Init(&argc, &argv);
+		MPI_Comm_size(MPI_COMM_WORLD, &p);
+		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
 	double debut ,fin;
 	tree_t root;
         result_t result;
-
+if(rank==maitre){
         if (argc < 2) {
           printf("usage: %s \"4k//4K/4P w\" (or any position in FEN)\n", argv[0]);
           exit(1);
@@ -216,17 +223,19 @@ int main(int argc, char **argv)
           printf("Transposition table ENABLED\n");
           init_tt();
         }
-        
+        }
         parse_FEN(argv[1], &root);
+        if(rank==maitre){
         print_position(&root);
-        
+        }
     debut = my_gettimeofday();
 
      
-	decide(&root, &result);
+	decide(&root, &result,status,rank,p);
 
 
 	fin = my_gettimeofday();
+	if(rank==maitre){
 	printf("\nDécision de la position: ");
         switch(result.score * (2*root.side - 1)) {
         case MAX_SCORE: printf("blanc gagne\n"); break;
@@ -236,8 +245,9 @@ int main(int argc, char **argv)
         }
 
         printf("Node searched: %llu\n", node_searched);
-        fprintf(stderr,"Temps total : %g sec\n", fin-debut);
+        fprintf(stderr,"Temps total du pross : %g sec\n", fin-debut);
         fprintf(stdout, "%g\n", fin-debut);        
+        }
         if (TRANSPOSITION_TABLE)
           free_tt();
 		MPI_Finalize();
