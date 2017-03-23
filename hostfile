@@ -1,13 +1,15 @@
  # Schéma boot
 # 8 machines
-pc4016
+#pc4016
 pc4021
-pc4022
+#pc4022
 pc4025
 pc4026
-pc4015
-pc4022
+#pc4015
+pc4009
+#pc4008
+pc4010
 pc4012
-#pc4005
+pc4005
 #pc4006
 
