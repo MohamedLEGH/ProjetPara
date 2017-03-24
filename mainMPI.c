@@ -115,7 +115,7 @@ if(rank<n_moves){
 				tree_t child;
                 result_t child_result;
                 
-                play_move(T, moves[p], &child);
+                play_move(T, moves[rank], &child);
                 
                 evaluate(&child, &child_result);
                          
@@ -123,21 +123,21 @@ if(rank<n_moves){
 
 		if (child_score > result->score) {
 			result->score = child_score;
-			result->best_move = moves[i];
+			result->best_move = moves[rank];
                         result->pv_length = child_result.pv_length + 1;
                         for(int j = 0; j < child_result.pv_length; j++)
                           result->PV[j+1] = child_result.PV[j];
-                          result->PV[0] = moves[i];
+                          result->PV[0] = moves[rank];
                 }
 
-                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-                  break;    
+                //if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                //  break;    
 
                 T->alpha = MAX(T->alpha, child_score);
 
         if (TRANSPOSITION_TABLE)
           tt_store(T, result);
-	    MPI_Allreduce(&(result->score),&(result->score),1,MPI_INT,MPI_MIN,MPI_COMM_WORLD);
+	    MPI_Reduce(&(result->score),&(result->score),1,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD);
 }
 int last_moves = n_moves-p;
         for (int i = p; i < last_moves; i++) {
@@ -164,6 +164,72 @@ int last_moves = n_moves-p;
 
                 T->alpha = MAX(T->alpha, child_score);
         }
+                if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+          MPI_Reduce(&(result->score),&(result->score),1,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD);
+}
+else{
+
+			int mult = n_moves/p;
+			int nmov_restant = n_moves%p;
+			for(int i=0; i<mult;i++)
+			{
+				tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[rank+p*i], &child);
+                
+                evaluate(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[rank+p*i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[rank+p*i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+
+			}
+		if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+          MPI_Reduce(&(result->score),&(result->score),1,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD);				
+			if(rank<nmov_restant)
+			{
+			tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[rank+p*mult], &child);
+                
+                evaluate(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[rank+p*mult];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[rank+p*mult];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+//                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+
+			}
+		if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+          MPI_Reduce(&(result->score),&(result->score),1,MPI_INT,MPI_MIN,0,MPI_COMM_WORLD);
 }
 }
 
