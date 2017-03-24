@@ -109,9 +109,38 @@ void evaluateP(tree_t * T, result_t *result, MPI_Status status,int p , int rank)
         
         if (ALPHA_BETA_PRUNING)
           sort_moves(T, n_moves, moves);
-
+if(n_moves<=p){
         /* évalue récursivement les positions accessibles à partir d'ici */
-        for (int i = 0; i < n_moves; i++) {
+if(rank<n_moves){
+				tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[p], &child);
+                
+                evaluate(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+
+        if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+	    MPI_Allreduce(&(result->score),&(result->score),1,MPI_INT,MPI_MIN,MPI_COMM_WORLD);
+}
+int last_moves = n_moves-p;
+        for (int i = p; i < last_moves; i++) {
 		tree_t child;
                 result_t child_result;
                 
@@ -135,11 +164,8 @@ void evaluateP(tree_t * T, result_t *result, MPI_Status status,int p , int rank)
 
                 T->alpha = MAX(T->alpha, child_score);
         }
-
-        if (TRANSPOSITION_TABLE)
-          tt_store(T, result);
 }
-
+}
 
 void decide(tree_t * T, result_t *result,MPI_Status status,int rank,int p)
 {		
