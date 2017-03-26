@@ -75,12 +75,12 @@ void evaluate(tree_t * T, result_t *result)
           tt_store(T, result);
 }
 
-void traitement_eval(tree_t * T,move_t * moves,result_t * result,int rank)
+void traitement_eval(tree_t * T,move_t * moves,result_t * result, int num)
 {
 	tree_t child;
     result_t child_result;
     
-    play_move(T, moves[rank], &child);
+    play_move(T, moves[num], &child);
     
     evaluate(&child, &child_result);
              
@@ -88,10 +88,10 @@ void traitement_eval(tree_t * T,move_t * moves,result_t * result,int rank)
 	
 	if (child_score > result->score) {
 		result->score = child_score;
-		result->best_move = moves[rank];
+		result->best_move = moves[num];
     	result->pv_length = child_result.pv_length + 1;
      	for(int j = 0; j < child_result.pv_length; j++)  result->PV[j+1] = child_result.PV[j];
-        result->PV[0] = moves[rank];
+        result->PV[0] = moves[num];
     }
 
     //if (ALPHA_BETA_PRUNING && child_score >= T->beta)
@@ -235,6 +235,7 @@ if(rank==maitre){
 
 
 	fin = my_gettimeofday();
+	
 	if(rank==maitre){
 	printf("\nDécision de la position: ");
         switch(result.score * (2*root.side - 1)) {
@@ -247,9 +248,10 @@ if(rank==maitre){
         printf("Node searched: %llu\n", node_searched);
         fprintf(stderr,"Temps total du pross : %g sec\n", fin-debut);
         fprintf(stdout, "%g\n", fin-debut);        
-        }
+        
         if (TRANSPOSITION_TABLE)
           free_tt();
+			}		
 		MPI_Finalize();
 	return 0;
 }
