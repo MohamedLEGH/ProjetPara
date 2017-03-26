@@ -86,7 +86,7 @@ void evaluate(tree_t * T, result_t *result)
 
 void evaluateP(tree_t * T, result_t *result, MPI_Status status,int p , int rank)
 {
-printf("TEST ALPHA \n");
+//printf("TEST ALPHA \n");
 	int maitre = 0;
 	int i;
     move_t moves[MAX_MOVES];
@@ -97,7 +97,7 @@ printf("TEST ALPHA \n");
 	if(rank==maitre)
 	{  
     	n_moves = generate_legal_moves(T, &moves[0]);
-	 	printf("pro 0 mo = %d\n",n_moves);
+	 	//printf("pro 0 mo = %d\n",n_moves);
 	 	for(i=1;i<p;i++)
  		{
 		 	MPI_Send( &n_moves,1,MPI_INT, i, 0, MPI_COMM_WORLD);
@@ -141,7 +141,7 @@ printf("TEST ALPHA \n");
 		    evaluate(&child, &child_result);                 
 		    int child_score = -child_result.score;
 		    
-			printf("TEST 0 res %d num %d \n",child_score,rank);
+			//printf("TEST 0 res %d num %d \n",child_score,rank);
 			
 			inDeux.val = child_score;
 			inDeux.rank = rank;
@@ -196,22 +196,24 @@ printf("TEST ALPHA \n");
 	else
 	{
 	MPI_Recv(&n_moves,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
-	printf("pro %d mo = %d\n",rank,n_moves);
-	printf("HELLOZZZ\n");
+	//printf("pro %d mo = %d\n",rank,n_moves);
+	//printf("HELLOZZZ rank %d\n",rank);
  	if(p<=n_moves){
     	node_searched++;
-	 	printf("HELLO3ZZ\n");
+	 	//printf("HELLO3ZZ rank %d\n",rank);
 		// receive numero
 		int number;
 		MPI_Recv(&number,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
+		//printf("z = %d num = %d \n",number, rank);
 		 //printf("HELLO12Z    Z\n");
 		// evaluate et tout le blabla
 		tree_t child;
         result_t child_result;
         play_move(T, moves[number], &child);
+
         evaluate(&child, &child_result);
         int child_score = -child_result.score;
-		printf("TEST res %d num %d \n",child_score,rank);
+		//printf("TEST res %d num %d \n",child_score,rank);
 		inDeux.val = child_score;
 		inDeux.rank = rank;
  		MPI_Reduce(&inDeux,&inDeux,1,MPI_2INT,MPI_MAXLOC,0,MPI_COMM_WORLD);
@@ -250,8 +252,8 @@ int main(int argc, char **argv)
 		MPI_Comm_size(MPI_COMM_WORLD, &p);
 		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
-printf("Pross num %d\n",rank);
-if(rank==maitre) printf("Pross T %d\n",p);
+//printf("Pross num %d\n",rank);
+//if(rank==maitre) printf("Pross T %d\n",p);
 	double debut ,fin;
 	tree_t root;
         result_t result;
