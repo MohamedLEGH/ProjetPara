@@ -11,12 +11,6 @@ double my_gettimeofday(){
 }
 unsigned long long int node_searched = 0;
 
-    struct { 
-        int val; 
-        int rank; 
-    } inDeux; 
-
-
 void evaluate(tree_t * T, result_t *result)
 {
         node_searched++;
@@ -82,203 +76,247 @@ void evaluate(tree_t * T, result_t *result)
           tt_store(T, result);
 }
 
-
-
-void evaluateP(tree_t * T, result_t *result, MPI_Status status,int p , int rank)
-{
-//printf("TEST ALPHA \n");
-	int maitre = 0;
-	int i;
-    move_t moves[MAX_MOVES];
-    result->score = -MAX_SCORE - 1;
-    result->pv_length = 0;
-    int n_moves;
-    
-	if(rank==maitre)
-	{  
-    	n_moves = generate_legal_moves(T, &moves[0]);
-	 	//printf("pro 0 mo = %d\n",n_moves);
-	 	for(i=1;i<p;i++)
- 		{
-		 	MPI_Send( &n_moves,1,MPI_INT, i, 0, MPI_COMM_WORLD);
-		}
-		
-        if (test_draw_or_victory(T, result))
-          return;
-          
-        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
-          return;
-        
-        compute_attack_squares(T);
-        /* profondeur max atteinte ? si oui, évaluation heuristique */
-        if (T->depth == 0) {
-          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
-          return;
-        }
-        
-		if (n_moves == 0) {
-          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
-          return;
-        	}
-        
-    	if (ALPHA_BETA_PRUNING) sort_moves(T, n_moves, moves);
-
-//printf("HELLO2\n");
-		if(p<=n_moves)
-		{
-		    node_searched++;
-	 		int m_res = n_moves - p ;
-	 		int number;
-	 		for(i=1;i<p;i++)
-	 		{
-		 		number = i;
-		 		// send numero moves
-		 		MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
-			}
-	 		tree_t child;
-		    result_t child_result;       
-		    play_move(T, moves[0], &child);        
-		    evaluate(&child, &child_result);                 
-		    int child_score = -child_result.score;
-		    
-			//printf("TEST 0 res %d num %d \n",child_score,rank);
-			
-			inDeux.val = child_score;
-			inDeux.rank = rank;
-		 	MPI_Reduce(&inDeux,&inDeux,1,MPI_2INT,MPI_MAXLOC,0,MPI_COMM_WORLD);
-	 		child_score = inDeux.val;
-	 		int bestRank = inDeux.rank;
-	 		
-			if (child_score > result->score) 
-			{
-				result->score = child_score;
-				result->best_move = moves[bestRank];
-		        result->pv_length = child_result.pv_length + 1;
-		        
-		        for(int j = 0; j < child_result.pv_length; j++) result->PV[j+1] = child_result.PV[j];
-		        
-		        result->PV[0] = moves[bestRank];
-		    }
-			T->alpha = MAX(T->alpha, child_score);
-	 	
-	//printf("HELLO3\n");
-		    /* évalue récursivement les positions accessibles à partir d'ici */
-			if(m_res>0)
-			{
-				for (int i = p; i < p+m_res; i++) 
-				{
-					tree_t child;
-				    result_t child_result;
-				    play_move(T, moves[i], &child);
-				    evaluate(&child, &child_result);
-				    int child_score = -child_result.score;
-
-					if (child_score > result->score) 
-					{
-						result->score = child_score;
-						result->best_move = moves[i];
-						result->pv_length = child_result.pv_length + 1;
-						for(int j = 0; j < child_result.pv_length; j++) result->PV[j+1] = child_result.PV[j];
-						result->PV[0] = moves[i];
-					}
-					if (ALPHA_BETA_PRUNING && child_score >= T->beta) break;    
-					T->alpha = MAX(T->alpha, child_score);
-				}
-
-				if (TRANSPOSITION_TABLE) tt_store(T, result);
-			}
-		}
-		else
-		{
-	 		evaluate(T, result);
-		}
-	}
-	else
-	{
-	MPI_Recv(&n_moves,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
-	//printf("pro %d mo = %d\n",rank,n_moves);
-	//printf("HELLOZZZ rank %d\n",rank);
- 	if(p<=n_moves){
-    	node_searched++;
-	 	//printf("HELLO3ZZ rank %d\n",rank);
-		// receive numero
-		int number;
-		MPI_Recv(&number,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
-		//printf("z = %d num = %d \n",number, rank);
-		 //printf("HELLO12Z    Z\n");
-		// evaluate et tout le blabla
-		tree_t child;
-        result_t child_result;
-        play_move(T, moves[number], &child);
-
-        evaluate(&child, &child_result);
-        int child_score = -child_result.score;
-		//printf("TEST res %d num %d \n",child_score,rank);
-		inDeux.val = child_score;
-		inDeux.rank = rank;
- 		MPI_Reduce(&inDeux,&inDeux,1,MPI_2INT,MPI_MAXLOC,0,MPI_COMM_WORLD);
-		}	
-	}
-}
-
-void decide(tree_t * T, result_t *result,MPI_Status status,int rank,int p)
-{		
-	int maitre=0;
-
-	for (int depth = 1;; depth++) {
-		T->depth = depth;
-		T->height = 0;
-		T->alpha_start = T->alpha = -MAX_SCORE - 1;
-		T->beta = MAX_SCORE + 1;
-		if(rank == maitre)
-                printf("=====================================\n");
-		evaluateP(T, result,status,p,rank);
-		if(rank == maitre){
-                printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
-                print_pv(T, result);
-                }
-                if (DEFINITIVE(result->score))
-                  break;
-	}
-}
-
-int main(int argc, char **argv)
-{   
-    	MPI_Init(&argc, &argv);
-		int rank,p;
+void evaluate_Para(tree_t * T, result_t *result)
+{    	int rank,p;
 		int maitre =0;
 		MPI_Status status;
 
 		MPI_Comm_size(MPI_COMM_WORLD, &p);
 		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
-//printf("Pross num %d\n",rank);
-//if(rank==maitre) printf("Pross T %d\n",p);
+        node_searched++;
+  
+        move_t moves[MAX_MOVES];
+        int n_moves;
+
+        result->score = -MAX_SCORE - 1;
+        result->pv_length = 0;
+        
+        if (test_draw_or_victory(T, result))
+          return;
+
+        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
+          return;
+        
+        compute_attack_squares(T);
+
+        /* profondeur max atteinte ? si oui, évaluation heuristique */
+        if (T->depth == 0) {
+          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
+          return;
+        }
+        
+        n_moves = generate_legal_moves(T, &moves[0]);
+
+        MPI_Bcast(
+    moves,
+    MAX_MOVES,
+    MPI_INT,
+    0,
+    MPI_COMM_WORLD);
+
+        /* absence de coups légaux : pat ou mat */
+	if (n_moves == 0) {
+          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
+          return;
+        }
+        
+        if (ALPHA_BETA_PRUNING)
+          sort_moves(T, n_moves, moves);
+
+        /* évalue récursivement les positions accessibles à partir d'ici */
+        int i;
+        
+        int debut = 0;
+        if(p<n_moves){
+        int number;
+	 	for(i=1;i<p;i++)
+ 		{
+		 	MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
+		}
+		//int rankee;
+		 		int child_score;
+			 	for(i=1;i<p;i++)
+ 		{
+ 		
+
+ 				tree_t child;
+        result_t child_result;
+        play_move(T, moves[rank], &child);
+ 		        //MPI_Recv(&rankee,1,MPI_INT,i,0,MPI_COMM_WORLD,&status);
+ 		        MPI_Recv(&child_score,1,MPI_INT,i,0,MPI_COMM_WORLD,&status);
+		// recv number pross puis chil_result
+				if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+		}
+        debut = p;
+        }
+        				tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[maitre], &child);
+                
+                evaluate(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[maitre];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[maitre];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  return;    
+
+                T->alpha = MAX(T->alpha, child_score);
+        for (i = debut; i < n_moves; i++) {
+///
+				tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[i], &child);
+                
+                evaluate(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+        }
+
+        if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+          
+
+}
+
+void eval_slave(tree_t * T, result_t *result)
+{		int rank,p;
+		int maitre =0;
+		MPI_Status status;
+		int number;
+		MPI_Comm_size(MPI_COMM_WORLD, &p);
+		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+		        
+        result->score = -MAX_SCORE - 1;
+        result->pv_length = 0;
+        
+        move_t moves[MAX_MOVES];
+                
+        MPI_Bcast(
+    moves,
+    MAX_MOVES,
+    MPI_INT,
+    0,
+    MPI_COMM_WORLD);
+		
+		tree_t child;
+        result_t child_result;
+        
+        
+        MPI_Recv(&number,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
+                
+        play_move(T, moves[rank], &child);
+                
+        evaluate(&child, &child_result);
+                         
+        int child_score = -child_result.score;
+
+		//int rankee = rank;
+		// 	MPI_Send( &rankee,1,MPI_INT, 0, 0, MPI_COMM_WORLD);
+		 	
+		 	MPI_Send( &child_score,1,MPI_INT, 0, 0, MPI_COMM_WORLD);
+
+}
+
+void decide(tree_t * T, result_t *result)
+{		int rank,p;
+		int maitre =0;
+		MPI_Status status;
+
+		MPI_Comm_size(MPI_COMM_WORLD, &p);
+		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+
+	for (int depth = 1;; depth++) {
+		T->depth = depth;
+		T->height = 0;
+		T->alpha_start = T->alpha = -MAX_SCORE - 1;
+		T->beta = MAX_SCORE + 1;
+
+        if(rank == maitre)        printf("=====================================\n");
+		if(rank == maitre) evaluate_Para(T, result);
+		else eval_slave(T,result);
+
+        if(rank == maitre)        printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
+        if(rank == maitre)        print_pv(T, result);
+                
+                if (DEFINITIVE(result->score))
+                  break;
+	}
+}
+
+
+int main(int argc, char **argv)
+{  
+
+MPI_Init(&argc, &argv);
+		int rank,p;
+		int maitre =0;
+		MPI_Status status;
+
+		MPI_Comm_size(MPI_COMM_WORLD, &p);
+		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+		
 	double debut ,fin;
 	tree_t root;
         result_t result;
 
         if (argc < 2) {
-          printf("usage: %s \"4k//4K/4P w\" (or any position in FEN)\n", argv[0]);
+        if(rank == maitre) printf("usage: %s \"4k//4K/4P w\" (or any position in FEN)\n", argv[0]);
           exit(1);
         }
 
         if (ALPHA_BETA_PRUNING)
-          printf("Alpha-beta pruning ENABLED\n");
+          if(rank == maitre) printf("Alpha-beta pruning ENABLED\n");
 
         if (TRANSPOSITION_TABLE) {
-        if(rank==maitre)
-          printf("Transposition table ENABLED\n");
+          if(rank == maitre) printf("Transposition table ENABLED\n");
           init_tt();
- }       
-        parse_FEN(argv[1], &root);
-        if(rank==maitre)
-        print_position(&root);
+        }
         
-    debut = my_gettimeofday();    
-	decide(&root, &result,status,rank,p);
+        parse_FEN(argv[1], &root);
+        if(rank == maitre) print_position(&root);
+        
+    debut = my_gettimeofday();     
+	decide(&root, &result);
 	fin = my_gettimeofday();
-	if(rank==maitre){
+	if(rank == maitre){
 	printf("\nDécision de la position: ");
         switch(result.score * (2*root.side - 1)) {
         case MAX_SCORE: printf("blanc gagne\n"); break;
@@ -289,10 +327,11 @@ int main(int argc, char **argv)
 
         printf("Node searched: %llu\n", node_searched);
         fprintf(stderr,"Temps total : %g sec\n", fin-debut);
-        fprintf(stdout, "%g\n", fin-debut);        
-        }
+        fprintf(stdout, "%g\n", fin-debut);
+        }        
         if (TRANSPOSITION_TABLE)
           free_tt();
-	    MPI_Finalize();
+    MPI_Finalize();      
 	return 0;
+
 }
