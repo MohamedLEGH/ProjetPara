@@ -76,14 +76,11 @@ void evaluate(tree_t * T, result_t *result)
           tt_store(T, result);
 }
 
-void evaluate_Para(tree_t * T, result_t *result)
-{    	int rank,p;
+void evaluate_Para(tree_t * T, result_t *result,int rank, int p, MPI_Status status)
+{    	
+		printf(" TZT Je suis %d et je commence\n",rank);        
 		int maitre =0;
-		MPI_Status status;
-
-		MPI_Comm_size(MPI_COMM_WORLD, &p);
-		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-
+		
         node_searched++;
   
         move_t moves[MAX_MOVES];
@@ -127,7 +124,13 @@ void evaluate_Para(tree_t * T, result_t *result)
         /* évalue récursivement les positions accessibles à partir d'ici */
         int i;
         
-        int debut = 0;
+        int debut = 1;
+        MPI_Bcast(
+    &n_moves,
+    1,
+    MPI_INT,
+    0,
+    MPI_COMM_WORLD);
         if(p<n_moves){
         int number;
 	 	for(i=1;i<p;i++)
@@ -142,7 +145,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 
  				tree_t child;
         result_t child_result;
-        play_move(T, moves[rank], &child);
+        play_move(T, moves[i], &child);
  		        //MPI_Recv(&rankee,1,MPI_INT,i,0,MPI_COMM_WORLD,&status);
  		        MPI_Recv(&child_score,1,MPI_INT,i,0,MPI_COMM_WORLD,&status);
 		// recv number pross puis chil_result
@@ -213,16 +216,18 @@ void evaluate_Para(tree_t * T, result_t *result)
         if (TRANSPOSITION_TABLE)
           tt_store(T, result);
           
-
+printf(" TZT Je suis %d et j'ai fini\n",rank);
 }
 
-void eval_slave(tree_t * T, result_t *result)
-{		int rank,p;
+void eval_slave(tree_t * T, result_t *result,int rank, int p, MPI_Status status)
+{
+
+		
+		printf(" TT Je suis %d et je commence\n",rank);        
 		int maitre =0;
-		MPI_Status status;
+		
 		int number;
-		MPI_Comm_size(MPI_COMM_WORLD, &p);
-		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+		
 		        
         result->score = -MAX_SCORE - 1;
         result->pv_length = 0;
@@ -235,14 +240,22 @@ void eval_slave(tree_t * T, result_t *result)
     MPI_INT,
     0,
     MPI_COMM_WORLD);
-		
+    int n_moves;
+    
+    MPI_Bcast(
+    &n_moves,
+    1,
+    MPI_INT,
+    0,
+    MPI_COMM_WORLD);
+		        if(p<n_moves){
 		tree_t child;
         result_t child_result;
-        
+        		 	printf(" TT Je suis %d et j'ai (presque) fini\n",rank);
         
         MPI_Recv(&number,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
                 
-        play_move(T, moves[rank], &child);
+        play_move(T, moves[number], &child);
                 
         evaluate(&child, &child_result);
                          
@@ -250,35 +263,34 @@ void eval_slave(tree_t * T, result_t *result)
 
 		//int rankee = rank;
 		// 	MPI_Send( &rankee,1,MPI_INT, 0, 0, MPI_COMM_WORLD);
-		 	
+
 		 	MPI_Send( &child_score,1,MPI_INT, 0, 0, MPI_COMM_WORLD);
-
+printf(" TT Je suis %d et j'ai fini\n",rank);
 }
-
-void decide(tree_t * T, result_t *result)
-{		int rank,p;
-		int maitre =0;
-		MPI_Status status;
-
-		MPI_Comm_size(MPI_COMM_WORLD, &p);
-		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-
+}
+void decide(tree_t * T, result_t *result, int rank, int p, MPI_Status status)
+{
+int maitre = 0;
+		printf(" TZ Je suis %d et je commence\n",rank);        
 	for (int depth = 1;; depth++) {
 		T->depth = depth;
 		T->height = 0;
 		T->alpha_start = T->alpha = -MAX_SCORE - 1;
 		T->beta = MAX_SCORE + 1;
 
-        if(rank == maitre)        printf("=====================================\n");
-		if(rank == maitre) evaluate_Para(T, result);
-		else eval_slave(T,result);
+        if(rank == maitre) {       printf("=====================================\n"); }
+
+		if(rank == maitre) { evaluate_Para(T, result,rank,p,status); }
+		else {eval_slave(T,result,rank,p,status); }
 
         if(rank == maitre)        printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
         if(rank == maitre)        print_pv(T, result);
                 
                 if (DEFINITIVE(result->score))
                   break;
+
 	}
+	printf(" TZ Je suis %d et j'ai fini\n",rank);
 }
 
 
@@ -292,7 +304,7 @@ MPI_Init(&argc, &argv);
 
 		MPI_Comm_size(MPI_COMM_WORLD, &p);
 		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-		
+				printf("Je suis %d et je commence A\n",rank);        
 	double debut ,fin;
 	tree_t root;
         result_t result;
@@ -314,8 +326,10 @@ MPI_Init(&argc, &argv);
         if(rank == maitre) print_position(&root);
         
     debut = my_gettimeofday();     
-	decide(&root, &result);
+    		printf("Je suis %d et je commence B\n",rank);        
+	decide(&root, &result,rank,p,status);
 	fin = my_gettimeofday();
+	printf("Je suis %d et j'ai fini\n",rank);
 	if(rank == maitre){
 	printf("\nDécision de la position: ");
         switch(result.score * (2*root.side - 1)) {
@@ -331,6 +345,8 @@ MPI_Init(&argc, &argv);
         }        
         if (TRANSPOSITION_TABLE)
           free_tt();
+    
+    
     MPI_Finalize();      
 	return 0;
 
