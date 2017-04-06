@@ -54,7 +54,6 @@ void evaluate(tree_t * T, result_t *result)
                 evaluate(&child, &child_result);
                          
                 int child_score = -child_result.score;
-
 		if (child_score > result->score) {
 			result->score = child_score;
 			result->best_move = moves[i];
