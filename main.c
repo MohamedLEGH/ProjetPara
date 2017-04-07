@@ -88,6 +88,9 @@ void decide(tree_t * T, result_t *result)
                 printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
                 print_pv(T, result);
                 
+//          printf("Le 0 a comme score %d \n" ,result->score);
+//  printf("Le 0 a comme best move %d \n" ,result->best_move);
+//  printf("Le 0 a comme length %d \n\n" ,result->pv_length);
                 if (DEFINITIVE(result->score))
                   break;
 	}
