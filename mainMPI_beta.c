@@ -83,26 +83,6 @@ void evaluate(tree_t * T, result_t *result)
           tt_store(T, result);
 }
 
-<<<<<<< HEAD
-void traitement_eval(tree_t * T,move_t * moves,result_t * result, int num)
-{
-	tree_t child;
-    result_t child_result;
-    
-    play_move(T, moves[num], &child);
-    
-    evaluate(&child, &child_result);
-             
-    int child_score = -child_result.score;
-	
-	if (child_score > result->score) {
-		result->score = child_score;
-		result->best_move = moves[num];
-    	result->pv_length = child_result.pv_length + 1;
-     	for(int j = 0; j < child_result.pv_length; j++)  result->PV[j+1] = child_result.PV[j];
-        result->PV[0] = moves[num];
-    }
-=======
 
 int begin(tree_t *T,result_t *result,int rank,int p,MPI_Status status)
 {
@@ -110,7 +90,6 @@ int begin(tree_t *T,result_t *result,int rank,int p,MPI_Status status)
 
 
 	node_searched++;
->>>>>>> 2d65186367feae62a28323493362f6f519c61fa6
 
 
 	result->score = -MAX_SCORE - 1;
@@ -510,10 +489,6 @@ MPI_Init(&argc, &argv);
     //		printf("Je suis %d et je commence B\n",rank);        
 	decide(&root, &result,rank,p,status);
 	fin = my_gettimeofday();
-<<<<<<< HEAD
-	
-	if(rank==maitre){
-=======
 	//printf("Je suis %d et j'ai fini le programme\n",rank);
 	
 //long long int testii = node_searched;	
@@ -534,7 +509,6 @@ MPI_Reduce(&node_searched, &nod_totaux, 1, MPI_LONG_LONG_INT, MPI_SUM,0,
 //printf("Je suis rank %d et mon nod vaut : %lli \n\n",rank,node_searched);
 	
 	if(rank == maitre){
->>>>>>> 2d65186367feae62a28323493362f6f519c61fa6
 	printf("\nDécision de la position: ");
         switch(result.score * (2*root.side - 1)) {
         case MAX_SCORE: printf("blanc gagne\n"); break;
@@ -543,16 +517,6 @@ MPI_Reduce(&node_searched, &nod_totaux, 1, MPI_LONG_LONG_INT, MPI_SUM,0,
         default: printf("BUG\n");
         }
 
-<<<<<<< HEAD
-        printf("Node searched: %llu\n", node_searched);
-        fprintf(stderr,"Temps total du pross : %g sec\n", fin-debut);
-        fprintf(stdout, "%g\n", fin-debut);        
-        
-        if (TRANSPOSITION_TABLE)
-          free_tt();
-			}		
-		MPI_Finalize();
-=======
         //printf("Node searched: %llu\n", node_searched);
         printf("Node searched: %llu\n", nod_totaux);
         fprintf(stderr,"Temps total : %g sec\n", fin-debut);
@@ -562,7 +526,6 @@ MPI_Reduce(&node_searched, &nod_totaux, 1, MPI_LONG_LONG_INT, MPI_SUM,0,
           free_tt();
     
     MPI_Finalize();      
->>>>>>> 2d65186367feae62a28323493362f6f519c61fa6
 	return 0;
 
 }
