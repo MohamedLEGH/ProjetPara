@@ -1,6 +1,7 @@
 #include "projet.h"
 #include <time.h>
 #include <sys/time.h>
+#include <omp.h>
 /* 2017-02-23 : version 1.0 */
 double my_gettimeofday(){
 	struct timeval tmp_time;
@@ -45,24 +46,29 @@ void evaluate(tree_t * T, result_t *result)
           sort_moves(T, n_moves, moves);
 
         /* évalue récursivement les positions accessibles à partir d'ici */
-			#pragma omp parallel for schedule(runtime)
-					 			
-        for (int i = 0; i < n_moves; i++) {
+	
+			#pragma omp parallel for schedule(dynamic, 1)
+			
+   	     for (int i = 0; i < n_moves; i++) {
 		tree_t child;
                 result_t child_result;
-		
-		if(T->depth<1){	 
-			 #pragma omp task untied shared(child_result)
-			{
                 
-                play_move(T, moves[i], &child);
-              
-                evaluate(&child, &child_result);
-        	
-			}                
+					
+            	play_move(T, moves[i], &child);
+    		            
+                if(T->depth<=1){
+					 		#pragma omp task untied shared(child_result)
+						{
+                		evaluate(&child, &child_result);
+						}
+							#pragma omp taskwait
+							
+					}else{
+							evaluate(&child, &child_result);
+					  } 
+                         
                 int child_score = -child_result.score;
-	//#pragma omp critical 
- 	//{
+
 		if (child_score > result->score) {
 			result->score = child_score;
 			result->best_move = moves[i];
@@ -71,40 +77,12 @@ void evaluate(tree_t * T, result_t *result)
                           result->PV[j+1] = child_result.PV[j];
                           result->PV[0] = moves[i];
                 }
-	//}	
-                //if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-                 // break;    
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
 
                 T->alpha = MAX(T->alpha, child_score);
-			
-			//#pragma omp taskwait
-			 }
-			else{
-       
-                play_move(T, moves[i], &child);
-              
-                evaluate(&child, &child_result);
-        	
-			                
-                int child_score = -child_result.score;
-	//#pragma omp critical 
- 	//{
-		if (child_score > result->score) {
-			result->score = child_score;
-			result->best_move = moves[i];
-                        result->pv_length = child_result.pv_length + 1;
-                        for(int j = 0; j < child_result.pv_length; j++)
-                          result->PV[j+1] = child_result.PV[j];
-                          result->PV[0] = moves[i];
-                }
-	//}	
-                //if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-                 // break;    
-
-                T->alpha = MAX(T->alpha, child_score);
-			
-			}
-      }
+        }
 	
         if (TRANSPOSITION_TABLE)
           tt_store(T, result);
@@ -120,8 +98,10 @@ void decide(tree_t * T, result_t *result)
 		T->beta = MAX_SCORE + 1;
 
                 printf("=====================================\n");
+	#pragma omp parallel
+	{
 		evaluate(T, result);
-
+	}
                 printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
                 print_pv(T, result);
                 
