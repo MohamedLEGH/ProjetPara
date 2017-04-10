@@ -142,12 +142,12 @@ void evaluateP(tree_t * T, result_t *result, MPI_Status status,int p , int rank)
 		    int child_score = -child_result.score;
 		    
 			//printf("TEST 0 res %d num %d \n",child_score,rank);
-			
-			inDeux.val = child_score;
-			inDeux.rank = rank;
-		 	MPI_Reduce(&inDeux,&inDeux,1,MPI_2INT,MPI_MAXLOC,0,MPI_COMM_WORLD);
-	 		child_score = inDeux.val;
-	 		int bestRank = inDeux.rank;
+			inDeux inDeuxl;
+			inDeuxl.val = child_score;
+			inDeuxl.rank = rank;
+		 	MPI_Reduce(&inDeuxl,&inDeuxl,1,MPI_2INT,MPI_MAXLOC,0,MPI_COMM_WORLD);
+	 		child_score = inDeuxl.val;
+	 		int bestRank = inDeuxl.rank;
 	 		
 			if (child_score > result->score) 
 			{
@@ -214,9 +214,9 @@ void evaluateP(tree_t * T, result_t *result, MPI_Status status,int p , int rank)
         evaluate(&child, &child_result);
         int child_score = -child_result.score;
 		//printf("TEST res %d num %d \n",child_score,rank);
-		inDeux.val = child_score;
-		inDeux.rank = rank;
- 		MPI_Reduce(&inDeux,&inDeux,1,MPI_2INT,MPI_MAXLOC,0,MPI_COMM_WORLD);
+		inDeuxl.val = child_score;
+		inDeuxl.rank = rank;
+ 		MPI_Reduce(&inDeuxl,&inDeuxl,1,MPI_2INT,MPI_MAXLOC,0,MPI_COMM_WORLD);
 		}	
 	}
 }
