@@ -9,8 +9,8 @@ mainMPv2.o:mainMPv2.c projet.h
 	$(CC) $(CFLAGS) -c mainMPv2.c
 mainMPv3.o:mainMPv3.c projet.h
 	$(CC) $(CFLAGS) -c mainMPv3.c 
-mainMPI.o:mainMPI_beta.c projet.h
-	$(MCC) -O3 -std=c99 -c mainMPI_beta.c -o mainMPI.o
+mainMPI.o:mainMPI.c projet.h
+	$(MCC) -O3 -std=c99 -c mainMPI.c -o mainMPI.o
 main.o:mainMP.c projet.h
 	$(CC) -O3 -std=c99 -c main.c
 aux.o: aux.c projet.h
