@@ -112,6 +112,205 @@ void evaluate(tree_t * T, result_t *result)
           tt_store(T, result);
 }
 
+void evaluateBis3(tree_t * T, result_t *result)
+{
+        node_searched++;
+  
+        move_t moves[MAX_MOVES];
+        int n_moves;
+
+        result->score = -MAX_SCORE - 1;
+        result->pv_length = 0;
+        
+        if (test_draw_or_victory(T, result))
+          return;
+
+        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
+          return;
+        
+        compute_attack_squares(T);
+
+        /* profondeur max atteinte ? si oui, évaluation heuristique */
+        if (T->depth == 0) {
+          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
+          return;
+        }
+        
+        n_moves = generate_legal_moves(T, &moves[0]);
+
+        /* absence de coups légaux : pat ou mat */
+	if (n_moves == 0) {
+          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
+          return;
+        }
+        
+        if (ALPHA_BETA_PRUNING)
+          sort_moves(T, n_moves, moves);
+
+        /* évalue récursivement les positions accessibles à partir d'ici */
+        for (int i = 0; i < n_moves; i++) {
+		tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[i], &child);
+                
+                evaluate(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+        }
+
+        if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+}
+
+
+void evaluateBis2(tree_t * T, result_t *result)
+{
+        node_searched++;
+  
+        move_t moves[MAX_MOVES];
+        int n_moves;
+
+        result->score = -MAX_SCORE - 1;
+        result->pv_length = 0;
+        
+        if (test_draw_or_victory(T, result))
+          return;
+
+        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
+          return;
+        
+        compute_attack_squares(T);
+
+        /* profondeur max atteinte ? si oui, évaluation heuristique */
+        if (T->depth == 0) {
+          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
+          return;
+        }
+        
+        n_moves = generate_legal_moves(T, &moves[0]);
+
+        /* absence de coups légaux : pat ou mat */
+	if (n_moves == 0) {
+          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
+          return;
+        }
+        
+        if (ALPHA_BETA_PRUNING)
+          sort_moves(T, n_moves, moves);
+
+        /* évalue récursivement les positions accessibles à partir d'ici */
+        for (int i = 0; i < n_moves; i++) {
+		tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[i], &child);
+                
+                evaluateBis3(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+        }
+
+        if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+}
+
+    
+void evaluateBis(tree_t * T, result_t *result)
+{
+        node_searched++;
+  
+        move_t moves[MAX_MOVES];
+        int n_moves;
+
+        result->score = -MAX_SCORE - 1;
+        result->pv_length = 0;
+        
+        if (test_draw_or_victory(T, result))
+          return;
+
+        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
+          return;
+        
+        compute_attack_squares(T);
+
+        /* profondeur max atteinte ? si oui, évaluation heuristique */
+        if (T->depth == 0) {
+          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
+          return;
+        }
+        
+        n_moves = generate_legal_moves(T, &moves[0]);
+
+        /* absence de coups légaux : pat ou mat */
+	if (n_moves == 0) {
+          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
+          return;
+        }
+        
+        if (ALPHA_BETA_PRUNING)
+          sort_moves(T, n_moves, moves);
+
+        /* évalue récursivement les positions accessibles à partir d'ici */
+        for (int i = 0; i < n_moves; i++) {
+		tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[i], &child);
+                
+                evaluateBis2(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+        }
+
+        if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+}
+
+
+
 /*Cette fonction sert juste à initialiser les trucs dans le evaluate paralléle*/
 int begin(tree_t *T,result_t *result)
 {
@@ -414,6 +613,9 @@ On remonte récursivement
 	
 	if(p<n_moves)
 	{
+	
+	
+	
 		number = 0;
 
 		for(i=1;i<p;i++)
@@ -478,6 +680,8 @@ On remonte récursivement
 			}
 
 		}
+	
+	
 	}
 	else
 	{
@@ -496,7 +700,7 @@ On remonte récursivement
 
 		play_move(T, moves[maitre], &child);
 
-		evaluate(&child, &child_result);
+		evaluateBis(&child, &child_result);
 
 		int child_score = -child_result.score;
 
