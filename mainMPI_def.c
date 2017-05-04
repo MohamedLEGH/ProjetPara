@@ -224,7 +224,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 
 		for(i=1;i<p;i++)
 		{
-			MPI_Isend( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD,&req);
+			MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
 			number++;
 		}
 //int rankee;
@@ -254,9 +254,9 @@ void evaluate_Para(tree_t * T, result_t *result)
 		while(number<n_moves)
 		{
 
-			MPI_Irecv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&req);
+			MPI_Recv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&status);
 			
-			MPI_Isend(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD,&req);
+			MPI_Send(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD);
 			if(rer1.score > result->score)
 			{
 				result->score = rer1.score;
@@ -272,9 +272,9 @@ void evaluate_Para(tree_t * T, result_t *result)
 		{
 		
 
-			MPI_Irecv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&req);
+			MPI_Recv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&status);
 			
-			MPI_Isend( &number,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD,&req);
+			MPI_Send( &number,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD);
 			if(rer1.score > result->score)
 			{
 				result->score = rer1.score;
@@ -292,7 +292,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 		for(i=1;i<n_moves;i++)
 		{			
 			number = i;
-			MPI_Isend( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD,&req);
+			MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
 			
          //   printf("J'ai envoyé le numéro : %d \n",number);
 		}
@@ -332,7 +332,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 		{
 	//									printf("Je suis %d , test avant recv data \n",rank);
 				result->score = inDeuxF.val;
-				MPI_Irecv(&result,1,mpi_resultat,inDeuxF.rank,0,MPI_COMM_WORLD,&req);
+				MPI_Recv(&result,1,mpi_resultat,inDeuxF.rank,0,MPI_COMM_WORLD,&status);
 
 		}
 	}
@@ -389,7 +389,7 @@ void eval_slave(tree_t * T, result_t *result)
     	result_t child_result;
     	//	 	printf(" TT Je suis %d et j'ai (presque) fini\n",rank);
     
-    	MPI_Irecv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&req);
+    	MPI_Recv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
         
         //printf("Je suis %d et j'ai reçu le numéro : %d \n",rank,number);
         while(status.MPI_TAG!=TAG_END)
@@ -414,9 +414,9 @@ void eval_slave(tree_t * T, result_t *result)
 			for(int j = 0; j < result->pv_length; j++)	rer1.PV[j] = result->PV[j];
 			
 			
-			MPI_Isend(&rer1,1,mpi_resultat,0,TAG_DATA,MPI_COMM_WORLD,&req);
+			MPI_Send(&rer1,1,mpi_resultat,0,TAG_DATA,MPI_COMM_WORLD);
 
-			MPI_Irecv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&req);
+			MPI_Recv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
 		}
 	}
 	else 
@@ -428,7 +428,7 @@ void eval_slave(tree_t * T, result_t *result)
 			tree_t child;
 	    	result_t child_result;
 	    
-	    	MPI_Irecv(&number,1,MPI_INT,0,0,MPI_COMM_WORLD,&req);
+	    	MPI_Recv(&number,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
 	        //printf("Je suis %d et j'ai reçu le numéro : %d \n",rank,number);
 	    	//printf("ca marche sur rank %d \n",rank);
 	        play_move(T, moves[number], &child);
@@ -462,7 +462,7 @@ void eval_slave(tree_t * T, result_t *result)
 			if(rank == inDeuxF.rank)
 			{
 		//									printf("Je suis %d , slave test avant envoie data \n",rank);        
-					MPI_Isend(&result,1,mpi_resultat,0,0,MPI_COMM_WORLD,&req);
+					MPI_Send(&result,1,mpi_resultat,0,0,MPI_COMM_WORLD);
 
 				//printf("Je suis %d et j'ai fini eval_slave\n",rank);
 			}
