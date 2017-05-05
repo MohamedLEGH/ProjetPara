@@ -112,202 +112,8 @@ void evaluate(tree_t * T, result_t *result)
           tt_store(T, result);
 }
 
-void evaluateBis3(tree_t * T, result_t *result)
-{
-        node_searched++;
-  
-        move_t moves[MAX_MOVES];
-        int n_moves;
-
-        result->score = -MAX_SCORE - 1;
-        result->pv_length = 0;
-        
-        if (test_draw_or_victory(T, result))
-          return;
-
-        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
-          return;
-        
-        compute_attack_squares(T);
-
-        /* profondeur max atteinte ? si oui, évaluation heuristique */
-        if (T->depth == 0) {
-          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
-          return;
-        }
-        
-        n_moves = generate_legal_moves(T, &moves[0]);
-
-        /* absence de coups légaux : pat ou mat */
-	if (n_moves == 0) {
-          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
-          return;
-        }
-        
-        if (ALPHA_BETA_PRUNING)
-          sort_moves(T, n_moves, moves);
-
-        /* évalue récursivement les positions accessibles à partir d'ici */
-        for (int i = 0; i < n_moves; i++) {
-		tree_t child;
-                result_t child_result;
-                
-                play_move(T, moves[i], &child);
-                
-                evaluate(&child, &child_result);
-                         
-                int child_score = -child_result.score;
-
-		if (child_score > result->score) {
-			result->score = child_score;
-			result->best_move = moves[i];
-                        result->pv_length = child_result.pv_length + 1;
-                        for(int j = 0; j < child_result.pv_length; j++)
-                          result->PV[j+1] = child_result.PV[j];
-                          result->PV[0] = moves[i];
-                }
-
-                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-                  break;    
-
-                T->alpha = MAX(T->alpha, child_score);
-        }
-
-        if (TRANSPOSITION_TABLE)
-          tt_store(T, result);
-}
 
 
-void evaluateBis2(tree_t * T, result_t *result)
-{
-        node_searched++;
-  
-        move_t moves[MAX_MOVES];
-        int n_moves;
-
-        result->score = -MAX_SCORE - 1;
-        result->pv_length = 0;
-        
-        if (test_draw_or_victory(T, result))
-          return;
-
-        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
-          return;
-        
-        compute_attack_squares(T);
-
-        /* profondeur max atteinte ? si oui, évaluation heuristique */
-        if (T->depth == 0) {
-          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
-          return;
-        }
-        
-        n_moves = generate_legal_moves(T, &moves[0]);
-
-        /* absence de coups légaux : pat ou mat */
-	if (n_moves == 0) {
-          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
-          return;
-        }
-        
-        if (ALPHA_BETA_PRUNING)
-          sort_moves(T, n_moves, moves);
-
-        /* évalue récursivement les positions accessibles à partir d'ici */
-        for (int i = 0; i < n_moves; i++) {
-		tree_t child;
-                result_t child_result;
-                
-                play_move(T, moves[i], &child);
-                
-                evaluateBis3(&child, &child_result);
-                         
-                int child_score = -child_result.score;
-
-		if (child_score > result->score) {
-			result->score = child_score;
-			result->best_move = moves[i];
-                        result->pv_length = child_result.pv_length + 1;
-                        for(int j = 0; j < child_result.pv_length; j++)
-                          result->PV[j+1] = child_result.PV[j];
-                          result->PV[0] = moves[i];
-                }
-
-                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-                  break;    
-
-                T->alpha = MAX(T->alpha, child_score);
-        }
-
-        if (TRANSPOSITION_TABLE)
-          tt_store(T, result);
-}
-
-    
-void evaluateBis(tree_t * T, result_t *result)
-{
-        node_searched++;
-  
-        move_t moves[MAX_MOVES];
-        int n_moves;
-
-        result->score = -MAX_SCORE - 1;
-        result->pv_length = 0;
-        
-        if (test_draw_or_victory(T, result))
-          return;
-
-        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
-          return;
-        
-        compute_attack_squares(T);
-
-        /* profondeur max atteinte ? si oui, évaluation heuristique */
-        if (T->depth == 0) {
-          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
-          return;
-        }
-        
-        n_moves = generate_legal_moves(T, &moves[0]);
-
-        /* absence de coups légaux : pat ou mat */
-	if (n_moves == 0) {
-          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
-          return;
-        }
-        
-        if (ALPHA_BETA_PRUNING)
-          sort_moves(T, n_moves, moves);
-
-        /* évalue récursivement les positions accessibles à partir d'ici */
-        for (int i = 0; i < n_moves; i++) {
-		tree_t child;
-                result_t child_result;
-                
-                play_move(T, moves[i], &child);
-                
-                evaluateBis2(&child, &child_result);
-                         
-                int child_score = -child_result.score;
-
-		if (child_score > result->score) {
-			result->score = child_score;
-			result->best_move = moves[i];
-                        result->pv_length = child_result.pv_length + 1;
-                        for(int j = 0; j < child_result.pv_length; j++)
-                          result->PV[j+1] = child_result.PV[j];
-                          result->PV[0] = moves[i];
-                }
-
-                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-                  break;    
-
-                T->alpha = MAX(T->alpha, child_score);
-        }
-
-        if (TRANSPOSITION_TABLE)
-          tt_store(T, result);
-}
 
 
 
@@ -383,7 +189,7 @@ void evaluate_Para(tree_t * T, result_t *result)
     MPI_Type_create_struct(nb_items,blocklens,offsets,types,&mpi_resultat);  
     MPI_Type_commit(&mpi_resultat);
 	
-//printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
+printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 
 /* absence de coups légaux : pat ou mat */
@@ -396,7 +202,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 	if (ALPHA_BETA_PRUNING)
 		sort_moves(T, n_moves, moves);
 
-//	printf("Je suis %d , test avant les broadcost\n",rank);        
+	printf("Je suis %d , test avant les broadcost\n",rank);        
 
 // On envoie a tout le monde le tableau de moves et le nombre de moves
 	MPI_Bcast(
@@ -423,7 +229,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 
 		for(i=1;i<p;i++)
 		{
-			MPI_Isend( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD,&req);
+			MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
 			number++;
 		}
 //int rankee;
@@ -438,7 +244,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 
 		int child_score = -child_result.score;
 
-		//printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
+		printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
 
 		eval_update(child_score,child_result,T,result,number,moves);
 
@@ -453,9 +259,9 @@ void evaluate_Para(tree_t * T, result_t *result)
 		while(number<n_moves)
 		{
 
-			MPI_Irecv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&req);
+			MPI_Recv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&status);
 			
-			MPI_Isend(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD,&req);
+			MPI_Send(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD);
 			if(rer1.score > result->score)
 			{
 				result->score = rer1.score;
@@ -471,9 +277,9 @@ void evaluate_Para(tree_t * T, result_t *result)
 		{
 		
 
-			MPI_Irecv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&req);
+			MPI_Recv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&status);
 			
-			MPI_Isend( &number,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD,&req);
+			MPI_Send( &number,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD);
 			if(rer1.score > result->score)
 			{
 				result->score = rer1.score;
@@ -486,12 +292,12 @@ void evaluate_Para(tree_t * T, result_t *result)
 	}
 	else
 	{
-	//	printf("Je suis %d , test avant les send de pieces\n",rank);        
+		printf("Je suis %d , test avant les send de pieces\n",rank);        
 	//	printf("TEST TEST LOL\n \n");
 		for(i=1;i<n_moves;i++)
 		{			
 			number = i;
-			MPI_Isend( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD,&req);
+			MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
 			
          //   printf("J'ai envoyé le numéro : %d \n",number);
 		}
@@ -531,7 +337,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 		{
 	//									printf("Je suis %d , test avant recv data \n",rank);
 				result->score = inDeuxF.val;
-				MPI_Irecv(&result,1,mpi_resultat,inDeuxF.rank,0,MPI_COMM_WORLD,&req);
+				MPI_Recv(&result,1,mpi_resultat,inDeuxF.rank,0,MPI_COMM_WORLD,&status);
 
 		}
 	}
@@ -570,7 +376,7 @@ void evaluate_Para_Deep(tree_t * T, result_t *result)
     MPI_Type_create_struct(nb_items,blocklens,offsets,types,&mpi_resultat);  
     MPI_Type_commit(&mpi_resultat);
 	
-//printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
+printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 
 /* absence de coups légaux : pat ou mat */
@@ -583,14 +389,7 @@ void evaluate_Para_Deep(tree_t * T, result_t *result)
 	if (ALPHA_BETA_PRUNING)
 		sort_moves(T, n_moves, moves);
 
-//	printf("Je suis %d , test avant les broadcost\n",rank);   
-
-     
-/* Dans cette partie on fait nos evaluate récursif jusqu'a un certains point,
-On récupère les moves qu'on envoie aux slaves,
-On récupère les coups et on reconstruit l'arbre
-On remonte récursivement
-*/
+	printf("Je suis %d , test avant les broadcost\n",rank);        
 
 // On envoie a tout le monde le tableau de moves et le nombre de moves
 	MPI_Bcast(
@@ -613,14 +412,11 @@ On remonte récursivement
 	
 	if(p<n_moves)
 	{
-	
-	
-	
 		number = 0;
 
 		for(i=1;i<p;i++)
 		{
-			MPI_Isend( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD,&req);
+			MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
 			number++;
 		}
 //int rankee;
@@ -635,7 +431,7 @@ On remonte récursivement
 
 		int child_score = -child_result.score;
 
-		//printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
+		printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
 
 		eval_update(child_score,child_result,T,result,number,moves);
 
@@ -650,9 +446,9 @@ On remonte récursivement
 		while(number<n_moves)
 		{
 
-			MPI_Irecv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&req);
+			MPI_Recv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&status);
 			
-			MPI_Isend(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD,&req);
+			MPI_Send(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD);
 			if(rer1.score > result->score)
 			{
 				result->score = rer1.score;
@@ -668,9 +464,9 @@ On remonte récursivement
 		{
 		
 
-			MPI_Irecv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&req);
+			MPI_Recv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&status);
 			
-			MPI_Isend( &number,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD,&req);
+			//MPI_Send( &number,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD);
 			if(rer1.score > result->score)
 			{
 				result->score = rer1.score;
@@ -680,17 +476,15 @@ On remonte récursivement
 			}
 
 		}
-	
-	
 	}
 	else
 	{
-	//	printf("Je suis %d , test avant les send de pieces\n",rank);        
+		printf("Je suis %d , test avant les send de pieces\n",rank);        
 	//	printf("TEST TEST LOL\n \n");
 		for(i=1;i<n_moves;i++)
 		{			
 			number = i;
-			MPI_Isend( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD,&req);
+			MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
 			
          //   printf("J'ai envoyé le numéro : %d \n",number);
 		}
@@ -700,7 +494,7 @@ On remonte récursivement
 
 		play_move(T, moves[maitre], &child);
 
-		evaluateBis(&child, &child_result);
+		evaluate(&child, &child_result);
 
 		int child_score = -child_result.score;
 
@@ -730,7 +524,7 @@ On remonte récursivement
 		{
 	//									printf("Je suis %d , test avant recv data \n",rank);
 				result->score = inDeuxF.val;
-				MPI_Irecv(&result,1,mpi_resultat,inDeuxF.rank,0,MPI_COMM_WORLD,&req);
+				MPI_Recv(&result,1,mpi_resultat,inDeuxF.rank,0,MPI_COMM_WORLD,&status);
 
 		}
 	}
@@ -740,6 +534,149 @@ On remonte récursivement
 
 	//printf("Je suis %d et j'ai fini evalPara\n",rank);
         MPI_Type_free(&mpi_resultat);
+}
+
+void evaluateBis2(tree_t * T, result_t *result)
+{
+printf("Test à la profondeur %d evaluateBis2  \n\n  ", T->depth);
+        node_searched++;
+  
+        move_t moves[MAX_MOVES];
+        int n_moves;
+
+        result->score = -MAX_SCORE - 1;
+        result->pv_length = 0;
+        
+        if (test_draw_or_victory(T, result))
+          return;
+
+        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
+          return;
+        
+        compute_attack_squares(T);
+
+        /* profondeur max atteinte ? si oui, évaluation heuristique */
+        if (T->depth == 0) {
+          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
+          return;
+        }
+        
+        n_moves = generate_legal_moves(T, &moves[0]);
+
+        /* absence de coups légaux : pat ou mat */
+	if (n_moves == 0) {
+          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
+          return;
+        }
+        
+        if (ALPHA_BETA_PRUNING)
+          sort_moves(T, n_moves, moves);
+
+        /* évalue récursivement les positions accessibles à partir d'ici */
+        for (int i = 0; i < n_moves; i++) {
+		tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[i], &child);
+                
+                evaluate_Para_Deep(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+        }
+
+        if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+          
+
+
+}
+
+    
+void evaluateBis(tree_t * T, result_t *result)
+{
+        node_searched++;
+  
+        move_t moves[MAX_MOVES];
+        int n_moves;
+
+        result->score = -MAX_SCORE - 1;
+        result->pv_length = 0;
+        
+        if (test_draw_or_victory(T, result))
+          return;
+
+        if (TRANSPOSITION_TABLE && tt_lookup(T, result))     /* la réponse est-elle déjà connue ? */
+          return;
+        
+        compute_attack_squares(T);
+
+        /* profondeur max atteinte ? si oui, évaluation heuristique */
+        if (T->depth == 0) {
+          result->score = (2 * T->side - 1) * heuristic_evaluation(T);
+          return;
+        }
+        
+        n_moves = generate_legal_moves(T, &moves[0]);
+
+        /* absence de coups légaux : pat ou mat */
+	if (n_moves == 0) {
+          result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
+          return;
+        }
+        
+        if (ALPHA_BETA_PRUNING)
+          sort_moves(T, n_moves, moves);
+
+        /* évalue récursivement les positions accessibles à partir d'ici */
+        for (int i = 0; i < n_moves; i++) {
+		tree_t child;
+                result_t child_result;
+                
+                play_move(T, moves[i], &child);
+                
+                evaluateBis2(&child, &child_result);
+                         
+                int child_score = -child_result.score;
+
+		if (child_score > result->score) {
+			result->score = child_score;
+			result->best_move = moves[i];
+                        result->pv_length = child_result.pv_length + 1;
+                        for(int j = 0; j < child_result.pv_length; j++)
+                          result->PV[j+1] = child_result.PV[j];
+                          result->PV[0] = moves[i];
+                }
+
+                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  break;    
+
+                T->alpha = MAX(T->alpha, child_score);
+        }
+
+        if (TRANSPOSITION_TABLE)
+          tt_store(T, result);
+          
+        int i;  
+		for(i=1;i<p;i++)
+		{
+			MPI_Send( &i,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD);
+		}
+		
+
 }
 
 void eval_slave(tree_t * T, result_t *result)
@@ -787,7 +724,7 @@ void eval_slave(tree_t * T, result_t *result)
     	result_t child_result;
     	//	 	printf(" TT Je suis %d et j'ai (presque) fini\n",rank);
     
-    	MPI_Irecv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&req);
+    	MPI_Recv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
         
         //printf("Je suis %d et j'ai reçu le numéro : %d \n",rank,number);
         while(status.MPI_TAG!=TAG_END)
@@ -812,9 +749,9 @@ void eval_slave(tree_t * T, result_t *result)
 			for(int j = 0; j < result->pv_length; j++)	rer1.PV[j] = result->PV[j];
 			
 			
-			MPI_Isend(&rer1,1,mpi_resultat,0,TAG_DATA,MPI_COMM_WORLD,&req);
+			MPI_Send(&rer1,1,mpi_resultat,0,TAG_DATA,MPI_COMM_WORLD);
 
-			MPI_Irecv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&req);
+			MPI_Recv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
 		}
 	}
 	else 
@@ -826,7 +763,7 @@ void eval_slave(tree_t * T, result_t *result)
 			tree_t child;
 	    	result_t child_result;
 	    
-	    	MPI_Irecv(&number,1,MPI_INT,0,0,MPI_COMM_WORLD,&req);
+	    	MPI_Recv(&number,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
 	        //printf("Je suis %d et j'ai reçu le numéro : %d \n",rank,number);
 	    	//printf("ca marche sur rank %d \n",rank);
 	        play_move(T, moves[number], &child);
@@ -860,7 +797,7 @@ void eval_slave(tree_t * T, result_t *result)
 			if(rank == inDeuxF.rank)
 			{
 		//									printf("Je suis %d , slave test avant envoie data \n",rank);        
-					MPI_Isend(&result,1,mpi_resultat,0,0,MPI_COMM_WORLD,&req);
+					MPI_Send(&result,1,mpi_resultat,0,0,MPI_COMM_WORLD);
 
 				//printf("Je suis %d et j'ai fini eval_slave\n",rank);
 			}
@@ -886,14 +823,14 @@ void decide(tree_t * T, result_t *result)
 		if(p == 1) {evaluate(T,result);}
 		else
 		{
-		if(depth <3)
+		if(depth <=3)
 		{ 
 			if(rank == maitre) { evaluate_Para(T, result); }
 			else {eval_slave(T,result); }
 		}
 		else
 		{
-			if(rank == maitre) { evaluate_Para_Deep(T, result); }
+			if(rank == maitre) { evaluateBis(T,result);}
 			else {eval_slave(T,result); }
 		}
 		}
