@@ -57,7 +57,6 @@ void evaluatePara(tree_t * T, result_t *result)
 
         /* évalue récursivement les positions accessibles à partir d'ici */
 	
-			#pragma omp parallel for schedule(runtime)
 			
    	     for (int i = 0; i < n_moves; i++) {
 		tree_t child;
@@ -95,10 +94,12 @@ void evaluatePara(tree_t * T, result_t *result)
 					 
 				
                 if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-						
+						{
 						evaluateseq(T,result);
-                  //break;    
-						
+						i = n_moves;
+                  //break;
+                  		}    
+			#pragma omp critical
                 T->alpha = MAX(T->alpha, child_score);
         }
 	
@@ -116,8 +117,8 @@ void decide(tree_t * T, result_t *result)
 		T->beta = MAX_SCORE + 1;
 
                 printf("=====================================\n");
-	
-	
+	#pragma omp parallel
+	#pragma omp single
 		evaluatePara(T, result);
 	
                 printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
