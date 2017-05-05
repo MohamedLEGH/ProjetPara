@@ -23,3 +23,12 @@ FEN                         | DECISION   | DEPTH | TIME   | REMARKS
 "4k//1p1p/p//1PPK w"        | draw       |  29   | 1min4   |
 "/6pp/5p/3k1PP/5K1P w"      | draw       |  46   | 3min00  | Tarrasch-Chigorin game, 1905
 
+
+Remarques:
+ecriture sur alpha et beta en multi_theard à trouver
+
+Lecture sur alpha et beta en multi_thread 
+
+si nécessaire, utiliser 
+
+#pragma omp flush !
