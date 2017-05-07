@@ -1,4 +1,4 @@
-target: decideMPI decideMPI_def decideMP decide decideMPv2 decideMPv3
+target: decideMPI decideMPI_def decideMP decide decideMPv2 decideMPv3 decideMPI_openMP
 CC = gcc
 MCC = mpicc
 CFLAGS=-fopenmp -O3 -std=c99
@@ -13,6 +13,8 @@ mainMPI.o:mainMPI.c projet.h
 	$(MCC) -O3 -std=c99 -c mainMPI.c -o mainMPI.o
 mainMPI_def.o:mainMPI_def.c projet.h
 	$(MCC) -O3 -std=c99 -c mainMPI_def.c -o mainMPI_def.o	
+mainMPI_openMP.o:mainMPI_openMP.c projet.h
+	$(MCC) -openmp -O3 -std=c99 -c mainMPI_openMP.c -o mainMPI_openMP.o
 main.o:mainMP.c projet.h
 	$(CC) -O3 -std=c99 -c main.c
 aux.o: aux.c projet.h
@@ -30,6 +32,8 @@ decideMPI: mainMPI.o aux.o
 	$(MCC) -O3 -std=c99 $^ -o $@
 decideMPI_def: mainMPI_def.o aux.o
 	$(MCC) -O3 -std=c99 $^ -o $@
+decideMPI_openMP: mainMPI_openMP.o aux.o
+	$(MCC) -openMP -O3 -std=c99 $^ -o $@
 decide: main.o aux.o
 	$(CC) -O3 -std=c99 $^ -o $@
 
@@ -38,5 +42,5 @@ decide: main.o aux.o
 .PHONY: clean
 
 clean:
-	rm -f *.o decideMPI decideMPI_def decideMP decide decideMPv2 decideMPv3
+	rm -f *.o decideMPI decideMPI_def decideMP decide decideMPv2 decideMPv3 decideMPI_openMP
 

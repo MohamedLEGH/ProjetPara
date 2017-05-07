@@ -105,8 +105,8 @@ void evaluate(tree_t * T, result_t *result)
                           result->PV[0] = moves[i];
                 }
 		}
-                if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-                  break;    
+                //if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+                  //break;    
 
                 T->alpha = MAX(T->alpha, child_score);
         }
@@ -529,8 +529,10 @@ void decide(tree_t * T, result_t *result)
 
 int main(int argc, char **argv)
 {  
+		
 
-		MPI_Init(&argc, &argv, MPI_THREAD_FUNNELED);
+		int provided;
+		MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED,&provided);
 		//int rank,p;
 		int maitre = 0;
 		//MPI_Status status;
