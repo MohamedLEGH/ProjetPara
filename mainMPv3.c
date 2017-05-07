@@ -57,40 +57,31 @@ void evaluatePara(tree_t * T, result_t *result)
 
         /* évalue récursivement les positions accessibles à partir d'ici */
 	
-			
+				 		
    	     for (int i = 0; i < n_moves; i++) {
-		tree_t child;
+					tree_t child;
                 result_t child_result;
-                
-					
-      	if(T->depth<1){	 
-			 #pragma omp task untied shared(child_result)
-			{
-                
-                play_move(T, moves[i], &child);
-              
-                evaluatePara(&child, &child_result);
-        	}
-
-			}else{
-					
+               if(T->depth <=1 ){
+					#pragma omp untied task nowait shared(child_result) 
 					play_move(T, moves[i], &child);
-              
-               evaluatePara(&child, &child_result);
-		
-				}  
-					   
-               int child_score = -child_result.score;
+					evaluatePara(&child, &child_result);	
+					}else{
+					play_move(T, moves[i], &child);		
+      			evaluatePara(&child, &child_result);	
+					}		 
+			 		int child_score = -child_result.score;
 		 
-		
-		if (child_score > result->score) {
-			result->score = child_score;
-			result->best_move = moves[i];
-                        result->pv_length = child_result.pv_length + 1;
+			
+      		if (child_score > result->score) {
+						result->score = child_score;
+						result->best_move = moves[i];
+                  result->pv_length = child_result.pv_length + 1;
+								
                         for(int j = 0; j < child_result.pv_length; j++)
                           result->PV[j+1] = child_result.PV[j];
                           result->PV[0] = moves[i];
                 }
+			
 					 
 				
                 if (ALPHA_BETA_PRUNING && child_score >= T->beta)
@@ -98,11 +89,11 @@ void evaluatePara(tree_t * T, result_t *result)
 						evaluateseq(T,result);
 						i = n_moves;
                   //break;
-                  		}    
-			#pragma omp critical
+                  }    
+					#pragma omp critical
                 T->alpha = MAX(T->alpha, child_score);
         }
-	
+				
         if (TRANSPOSITION_TABLE)
           tt_store(T, result);
 }
@@ -117,10 +108,13 @@ void decide(tree_t * T, result_t *result)
 		T->beta = MAX_SCORE + 1;
 
                 printf("=====================================\n");
-	#pragma omp parallel
-	#pragma omp single
-		evaluatePara(T, result);
 	
+		
+		#pragma omp parallel
+	{
+		#pragma omp single	
+		evaluatePara(T, result);
+	}
                 printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
                 print_pv(T, result);
                 
