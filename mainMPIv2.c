@@ -106,9 +106,6 @@ void evaluate(tree_t * T, result_t *result)
                   break;    
 
                 T->alpha = MAX(T->alpha, child_score);
-                int alpha = T->alpha;
-                	//	MPI_Allreduce(&alpha,&T->alpha,1,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
-                
         }
 
         if (TRANSPOSITION_TABLE)
@@ -220,7 +217,7 @@ void evaluate_Para(tree_t * T, result_t *result)
 	MPI_COMM_WORLD);
 
 
-	
+	int alpha;
 	if(p<n_moves)
 	{
 		number = 0;
@@ -253,13 +250,13 @@ void evaluate_Para(tree_t * T, result_t *result)
 	
 		number++;
 
-	
+		int z;
 		while(number<n_moves)
 		{
 
 			MPI_Recv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&status);
 			
-			MPI_Send(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD);
+			
 			if(rer1.score > result->score)
 			{
 				result->score = rer1.score;
@@ -267,7 +264,20 @@ void evaluate_Para(tree_t * T, result_t *result)
 				result->pv_length = rer1.pv_length;
 				for(int j = 0; j < rer1.pv_length; j++) result->PV[j] = rer1.PV[j];
 			}
-
+			if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+				{	
+				for(z=1;z<p;z++)
+					{
+					MPI_Send(&number,1,MPI_INT,i,TAG_END,MPI_COMM_WORLD);
+					}
+				return;    
+				}
+			
+				T->alpha = MAX(T->alpha, rer1.score);
+				alpha = T->alpha;
+MPI_Send(&alpha,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD);
+				
+MPI_Send(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD);
 			number++;
 		}
 	
@@ -277,7 +287,6 @@ void evaluate_Para(tree_t * T, result_t *result)
 
 			MPI_Recv(&rer1,1,mpi_resultat,MPI_ANY_SOURCE,TAG_DATA,MPI_COMM_WORLD,&status);
 			
-			MPI_Send( &number,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD);
 			if(rer1.score > result->score)
 			{
 				result->score = rer1.score;
@@ -285,8 +294,13 @@ void evaluate_Para(tree_t * T, result_t *result)
 				result->pv_length = rer1.pv_length;
 				for(int j = 0; j < rer1.pv_length; j++) result->PV[j] = rer1.PV[j];
 			}
+				T->alpha = MAX(T->alpha, rer1.score);
 
+		alpha = T->alpha;
+		MPI_Send(&alpha,1,MPI_INT,i,TAG_REQ,MPI_COMM_WORLD);
+		MPI_Send( &number,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD);
 		}
+		
 	}
 	else
 	{
@@ -394,6 +408,7 @@ void eval_slave(tree_t * T, result_t *result)
     
     	MPI_Recv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
         
+        int alpha = T->alpha;
         //printf("Je suis %d et j'ai reçu le numéro : %d \n",rank,number);
         while(status.MPI_TAG!=TAG_END)
         {
@@ -419,6 +434,8 @@ void eval_slave(tree_t * T, result_t *result)
 			
 			MPI_Send(&rer1,1,mpi_resultat,0,TAG_DATA,MPI_COMM_WORLD);
 
+			MPI_Recv(&alpha,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
+			if(alpha>T->alpha) T->alpha = alpha;
 			MPI_Recv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
 		}
 	}
