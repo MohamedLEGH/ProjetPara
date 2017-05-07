@@ -85,13 +85,14 @@ void evaluate(tree_t * T, result_t *result)
         /* évalue récursivement les positions accessibles à partir d'ici */
         for (int i = 0; i < n_moves; i++) {
 		tree_t child;
+		result_t child_result;
                 if(T->depth <=1 ){
 					#pragma omp untied task nowait shared(child_result) 
 					play_move(T, moves[i], &child);
-					evaluatePara(&child, &child_result);	
+					evaluate_Para(&child, &child_result);	
 					}else{
 					play_move(T, moves[i], &child);		
-      			evaluatePara(&child, &child_result);	
+      			evaluate_Para(&child, &child_result);	
 					}		 
                 
                 
@@ -241,10 +242,10 @@ void evaluate_Para(tree_t * T, result_t *result)
 		 if(T->depth <=2 ){
 					#pragma omp untied task nowait shared(child_result) 
 					play_move(T, moves[i], &child);
-					evaluatePara(&child, &child_result);	
+					evaluate_Para(&child, &child_result);	
 					}else{
 					play_move(T, moves[i], &child);		
-      			evaluatePara(&child, &child_result);	
+      			evaluate_Para(&child, &child_result);	
 			}		
 		
 		int child_score = -child_result.score;
@@ -330,10 +331,10 @@ MPI_Send(&number,1,MPI_INT,status.MPI_SOURCE,TAG_REQ,MPI_COMM_WORLD);
 		 if(T->depth <=2 ){
 					#pragma omp untied task nowait shared(child_result) 
 					play_move(T, moves[i], &child);
-					evaluatePara(&child, &child_result);	
+					evaluate_Para(&child, &child_result);	
 					}else{
 					play_move(T, moves[i], &child);		
-      			evaluatePara(&child, &child_result);	
+      			evaluate_Para(&child, &child_result);	
 			}		
 
 		int child_score = -child_result.score;
@@ -429,11 +430,11 @@ void eval_slave(tree_t * T, result_t *result)
         {
 	    	 if(T->depth <=2 ){
 					#pragma omp untied task nowait shared(child_result) 
-					play_move(T, moves[i], &child);
-					evaluatePara(&child, &child_result);	
+					play_move(T, moves[number], &child);
+					evaluate_Para(&child, &child_result);	
 					}else{
-					play_move(T, moves[i], &child);		
-      			evaluatePara(&child, &child_result);	
+					play_move(T, moves[number], &child);		
+      			evaluate_Para(&child, &child_result);	
 				}		
 	                     
 	    	int child_score = -child_result.score;
@@ -473,10 +474,10 @@ void eval_slave(tree_t * T, result_t *result)
 	    	//printf("ca marche sur rank %d \n",rank);
 	       if(T->depth <=1 ){
 					#pragma omp untied task nowait shared(child_result) 
-					play_move(T, moves[i], &child);
+					play_move(T, moves[number], &child);
 					evaluatePara(&child, &child_result);	
 					}else{
-					play_move(T, moves[i], &child);		
+					play_move(T, moves[number], &child);		
       			evaluatePara(&child, &child_result);	
 					}		
 	    	int child_score = -child_result.score;
