@@ -189,7 +189,7 @@ void evaluate_Para(tree_t * T, result_t *result)
     MPI_Type_create_struct(nb_items,blocklens,offsets,types,&mpi_resultat);  
     MPI_Type_commit(&mpi_resultat);
 	
-printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
+//printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 
 /* absence de coups légaux : pat ou mat */
@@ -202,7 +202,7 @@ printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 	if (ALPHA_BETA_PRUNING)
 		sort_moves(T, n_moves, moves);
 
-	printf("Je suis %d , test avant les broadcost\n",rank);        
+	//printf("Je suis %d , test avant les broadcost\n",rank);        
 
 // On envoie a tout le monde le tableau de moves et le nombre de moves
 	MPI_Bcast(
@@ -244,7 +244,7 @@ printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 		int child_score = -child_result.score;
 
-		printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
+		//printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
 
 		eval_update(child_score,child_result,T,result,number,moves);
 
@@ -292,7 +292,7 @@ printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 	}
 	else
 	{
-		printf("Je suis %d , test avant les send de pieces\n",rank);        
+		//printf("Je suis %d , test avant les send de pieces\n",rank);        
 	//	printf("TEST TEST LOL\n \n");
 		for(i=1;i<n_moves;i++)
 		{			
@@ -352,6 +352,7 @@ printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 void evaluate_Para_Deep(tree_t * T, result_t *result)
 { 
+printf("Je suis le maitre et j'entre dans evalParaDeep \n");
    	// Les initialisations du début
 	int maitre =0;
 	int i;
@@ -376,7 +377,7 @@ void evaluate_Para_Deep(tree_t * T, result_t *result)
     MPI_Type_create_struct(nb_items,blocklens,offsets,types,&mpi_resultat);  
     MPI_Type_commit(&mpi_resultat);
 	
-printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
+//printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 
 /* absence de coups légaux : pat ou mat */
@@ -408,7 +409,7 @@ printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 	0,
 	MPI_COMM_WORLD);
 
-
+	printf("Je suis %d , test après les broadcost\n",rank);        
 	
 	if(p<n_moves)
 	{
@@ -431,7 +432,7 @@ printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 		int child_score = -child_result.score;
 
-		printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
+		//printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
 
 		eval_update(child_score,child_result,T,result,number,moves);
 
@@ -477,57 +478,6 @@ printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 		}
 	}
-	else
-	{
-		printf("Je suis %d , test avant les send de pieces\n",rank);        
-	//	printf("TEST TEST LOL\n \n");
-		for(i=1;i<n_moves;i++)
-		{			
-			number = i;
-			MPI_Send( &number,1,MPI_INT, i, 0, MPI_COMM_WORLD);
-			
-         //   printf("J'ai envoyé le numéro : %d \n",number);
-		}
-
-		tree_t child;
-		result_t child_result;
-
-		play_move(T, moves[maitre], &child);
-
-		evaluate(&child, &child_result);
-
-		int child_score = -child_result.score;
-
-		//printf(" Je suis rank %d et mon score est %d \n \n", rank,child_score);
-
-		eval_update(child_score,child_result,T,result,maitre,moves);
-
-		if (ALPHA_BETA_PRUNING && child_score >= T->beta)
-			return;    
-
-		T->alpha = MAX(T->alpha, child_score);
-		inDeux inDeuxB;
-		inDeuxB.val = result->score;
-		inDeuxB.rank = rank;
-		inDeux inDeuxF; 
-			inDeuxF.val = result->score;
-		inDeuxF.rank = rank;
-			//	printf("Je suis %d , test avant le reduce\n",rank);        
-
-		MPI_Allreduce(&inDeuxB,&inDeuxF,1,MPI_2INT,MPI_MAXLOC,MPI_COMM_WORLD);
-
-	//printf("Je suis le 0, test après reduce \n");
-		
-	
-//	    								printf("Je suis %d , et le rank qui doit envoyer est %d \n",rank,inDeuxF.rank);
-		if(rank != inDeuxF.rank)
-		{
-	//									printf("Je suis %d , test avant recv data \n",rank);
-				result->score = inDeuxF.val;
-				MPI_Recv(&result,1,mpi_resultat,inDeuxF.rank,0,MPI_COMM_WORLD,&status);
-
-		}
-	}
 			
 	if (TRANSPOSITION_TABLE)
 	tt_store(T, result);
@@ -538,7 +488,7 @@ printf(" nmoves = %d à la profondeur %d \n \n",n_moves, T->depth);
 
 void evaluateBis2(tree_t * T, result_t *result)
 {
-printf("Test à la profondeur %d evaluateBis2  \n\n  ", T->depth);
+
         node_searched++;
   
         move_t moves[MAX_MOVES];
@@ -562,7 +512,7 @@ printf("Test à la profondeur %d evaluateBis2  \n\n  ", T->depth);
         }
         
         n_moves = generate_legal_moves(T, &moves[0]);
-
+printf("Je suis le maitre et j'entre dans evalBis2 \n Il y a %d moves \n", n_moves);
         /* absence de coups légaux : pat ou mat */
 	if (n_moves == 0) {
           result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
@@ -608,6 +558,7 @@ printf("Test à la profondeur %d evaluateBis2  \n\n  ", T->depth);
     
 void evaluateBis(tree_t * T, result_t *result)
 {
+
         node_searched++;
   
         move_t moves[MAX_MOVES];
@@ -631,7 +582,7 @@ void evaluateBis(tree_t * T, result_t *result)
         }
         
         n_moves = generate_legal_moves(T, &moves[0]);
-
+printf("Test à la profondeur %d evaluateBis  \n\n Il y a %d moves \n\n ", T->depth, n_moves);
         /* absence de coups légaux : pat ou mat */
 	if (n_moves == 0) {
           result->score = check(T) ? -MAX_SCORE : CERTAIN_DRAW;
@@ -676,7 +627,7 @@ void evaluateBis(tree_t * T, result_t *result)
 			MPI_Send( &i,1,MPI_INT, i, TAG_END, MPI_COMM_WORLD);
 		}
 		
-
+printf("Je suis le maitre  Deep et je sors du evaluate à la profondeur %d \n",T->depth);
 }
 
 void eval_slave(tree_t * T, result_t *result)
@@ -807,6 +758,86 @@ void eval_slave(tree_t * T, result_t *result)
         MPI_Type_free(&mpi_resultat);
 }
 
+
+
+void eval_slave_Deep(tree_t * T, result_t *result)
+{
+	result_t rer1;
+
+		//		printf("Je suis %d ,slave test \n",rank);        
+	int maitre =0;
+	int number;
+						        
+    result->score = -MAX_SCORE - 1;
+    result->pv_length = 0;
+    
+    move_t moves[MAX_MOVES];
+            
+    MPI_Bcast(
+	moves,
+	MAX_MOVES,
+	MPI_INT,
+	0,
+	MPI_COMM_WORLD);
+	int n_moves;
+	
+	MPI_Bcast(
+	&n_moves,
+	1,
+	MPI_INT,
+	0,
+	MPI_COMM_WORLD);
+	
+     offsets[0] = offsetof(result_t,score);
+     offsets[1] = offsetof(result_t,best_move);
+     offsets[2] = offsetof(result_t,pv_length);
+     offsets[3] = offsetof(result_t,PV); 
+     MPI_Type_create_struct(nb_items,blocklens,offsets,types,&mpi_resultat);  
+     MPI_Type_commit(&mpi_resultat);
+	
+	
+	
+	printf("Je suis %d , le nb de moves est %d et il y a %d processeurs in evalDeep %d \n",rank,n_moves,p,T->depth);
+	
+		tree_t child;
+    	result_t child_result;
+    	//	 	printf(" TT Je suis %d et j'ai (presque) fini\n",rank);
+    
+    	MPI_Recv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
+        
+        //printf("Je suis %d et j'ai reçu le numéro : %d \n",rank,number);
+        while(status.MPI_TAG!=TAG_END)
+        {
+	    	play_move(T, moves[number], &child);
+	            
+	    	evaluate(&child, &child_result);
+	                     
+	    	int child_score = -child_result.score;
+			
+			eval_update(child_score,child_result,T,result,number,moves);
+
+			if (ALPHA_BETA_PRUNING && child_score >= T->beta)
+			return;    
+
+			T->alpha = MAX(T->alpha, child_score);
+			
+			
+			rer1.score = result->score;
+			rer1.best_move = result->best_move;
+			rer1.pv_length = result->pv_length;
+			for(int j = 0; j < result->pv_length; j++)	rer1.PV[j] = result->PV[j];
+			
+			
+			MPI_Send(&rer1,1,mpi_resultat,0,TAG_DATA,MPI_COMM_WORLD);
+
+			MPI_Recv(&number,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
+		}
+
+	printf("Je suis %d et j'ai fini eval_slave_Deep\n",rank);
+        MPI_Type_free(&mpi_resultat);
+}
+
+
 void decide(tree_t * T, result_t *result)
 {
 	int maitre = 0;
@@ -823,16 +854,16 @@ void decide(tree_t * T, result_t *result)
 		if(p == 1) {evaluate(T,result);}
 		else
 		{
-		if(depth <=3)
-		{ 
-			if(rank == maitre) { evaluate_Para(T, result); }
-			else {eval_slave(T,result); }
-		}
-		else
-		{
-			if(rank == maitre) { evaluateBis(T,result);}
-			else {eval_slave(T,result); }
-		}
+			if(depth <=3)
+			{ 
+				if(rank == maitre) { evaluate_Para(T, result); }
+				else {eval_slave(T,result); }
+			}
+			else
+			{
+				if(rank == maitre) { evaluateBis(T,result);}
+				else {eval_slave_Deep(T,result); }
+			}
 		}
 		    if(rank == maitre)        printf("depth: %d / score: %.2f / best_move : ", T->depth, 0.01 * result->score);
 		    if(rank == maitre)        print_pv(T, result);
@@ -862,7 +893,7 @@ void decide(tree_t * T, result_t *result)
 		if (DEFINITIVE(finit)) break;
 
 	}
-	//printf("Je suis %d et j'ai fini le decide\n",rank);
+	printf("Je suis %d et j'ai fini le decide\n",rank);
 }
 
 
