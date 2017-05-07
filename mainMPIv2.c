@@ -1,4 +1,4 @@
-#include "projet.h"
+#include "projetv2.h"
 #include <time.h>
 #include <sys/time.h>
 
@@ -106,6 +106,9 @@ void evaluate(tree_t * T, result_t *result)
                   break;    
 
                 T->alpha = MAX(T->alpha, child_score);
+                int alpha = T->alpha;
+                	//	MPI_Allreduce(&alpha,&T->alpha,1,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
+                
         }
 
         if (TRANSPOSITION_TABLE)
